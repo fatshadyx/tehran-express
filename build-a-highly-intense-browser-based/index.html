@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tehran Express</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="gameRoot">
+      <canvas id="gameCanvas"></canvas>
+      <canvas id="radarCanvas" width="360" height="360"></canvas>
+
+      <section id="hudTop">
+        <div class="brandBlock">
+          <span class="callsign">IDEX-9 AIR DEFENSE</span>
+          <h1>Tehran Express</h1>
+        </div>
+
+        <div class="cityMeter">
+          <div class="meterLabel">
+            <span>City Integrity</span>
+            <strong id="cityPercent">100%</strong>
+          </div>
+          <div class="meterTrack">
+            <div id="cityBar"></div>
+          </div>
+        </div>
+
+        <div class="hudStats">
+          <div>
+            <span>Interceptors</span>
+            <strong id="ammoText">18</strong>
+          </div>
+          <div>
+            <span>Wave</span>
+            <strong id="waveText">1</strong>
+          </div>
+          <div>
+            <span>Threats</span>
+            <strong id="threatText">0</strong>
+          </div>
+        </div>
+      </section>
+
+      <section id="zonePanel" aria-label="City zones">
+        <div class="zoneRow">
+          <span>Industrial</span>
+          <div><i id="industrialBar"></i></div>
+        </div>
+        <div class="zoneRow">
+          <span>Residential</span>
+          <div><i id="residentialBar"></i></div>
+        </div>
+        <div class="zoneRow">
+          <span>Military</span>
+          <div><i id="militaryBar"></i></div>
+        </div>
+      </section>
+
+      <div id="warningStack"></div>
+      <div id="reticle">
+        <span></span>
+        <b id="lockMeter"></b>
+      </div>
+
+      <section id="bottomDock">
+        <div class="statusChip" id="reloadChip">RELOAD READY</div>
+        <div class="statusChip" id="emergencyChip">EMERGENCY READY</div>
+        <button id="autoDroneButton" class="abilityButton" disabled>DRONE FIRER</button>
+        <div class="statusChip danger" id="pressureChip">RADAR CLEAR</div>
+      </section>
+
+      <section id="droneSweepOverlay" hidden>
+        <span>DRONE SWEEP</span>
+      </section>
+
+      <section id="fullClearReadyPanel" hidden>
+        <span>FULL CLEAR READY</span>
+        <strong>Press F to activate</strong>
+      </section>
+
+      <section id="surgeCountdown" hidden>
+        <span>SURGE INBOUND</span>
+        <strong id="surgeCountdownText">3</strong>
+      </section>
+
+      <section id="startOverlay">
+        <div class="startPanel">
+          <span class="callsign">FICTIONAL SCENARIO</span>
+          <h2>Tehran Express</h2>
+          <p>Air defense command is active over a city under sustained missile assault.</p>
+          <p id="loadHint" class="loadHint" hidden>
+            Game engine did not load. Start with node server.cjs, then open http://127.0.0.1:8000.
+          </p>
+          <button id="startButton">Engage Defense Grid</button>
+        </div>
+      </section>
+
+      <section id="endOverlay" hidden>
+        <div class="startPanel">
+          <span class="callsign">CITY DEFENSE LOST</span>
+          <h2 id="finalWave">Wave 1</h2>
+          <p id="finalStats">The defense grid collapsed under pressure.</p>
+          <button id="restartButton">Restart Defense</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          if (!window.__IDEX_READY__) {
+            document.getElementById("loadHint").hidden = false;
+          }
+        }, 700);
+      });
+    </script>
+    <script src="./vendor/three.global.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>
