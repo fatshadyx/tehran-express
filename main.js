@@ -1,4 +1,7 @@
 const THREE = window.THREE;
+if (!THREE) {
+  throw new Error("Three.js failed to load. Make sure vendor/three.global.js is available.");
+}
 
 const TAU = Math.PI * 2;
 const WORLD_RADIUS = 92;
@@ -696,6 +699,8 @@ class MissileSystem {
     this.surgeCountdown = 0;
     this.surgeCountdownSecond = 0;
     this.surgeBatchId = 0;
+    this.currentSurgeId = 0;
+    this.fullClearSurgeId = null;
     this.fullClearReady = false;
     this.fullClearArmTimer = 0;
     this.jamTimer = 0;
@@ -712,6 +717,8 @@ class MissileSystem {
     this.surgeCountdown = 0;
     this.surgeCountdownSecond = 0;
     this.surgeBatchId += 1;
+    this.currentSurgeId = 0;
+    this.fullClearSurgeId = null;
     this.fullClearReady = false;
     this.fullClearArmTimer = 0;
     this.jamTimer = 0;
@@ -719,12 +726,13 @@ class MissileSystem {
     dom.surgeCountdown.hidden = true;
   }
 
-  addMissile(type, start = null, target = null) {
+  addMissile(type, start = null, target = null, options = {}) {
     const angle = rand(0, TAU);
     const spawn = start
       ? start.clone()
       : new THREE.Vector3(Math.cos(angle) * WORLD_RADIUS, rand(5, 15), Math.sin(angle) * WORLD_RADIUS);
     const missile = new Missile(type, spawn, target || this.city.getTarget(), this.wave);
+    missile.surgeId = options.surgeId || null;
     this.missiles.push(missile);
     this.scene.add(missile.mesh, missile.trail, missile.prediction);
     return missile;
@@ -752,13 +760,16 @@ class MissileSystem {
 
   surge() {
     const amount = 9 + Math.min(18, Math.floor(this.wave * 1.8));
+    this.currentSurgeId += 1;
+    const surgeId = this.currentSurgeId;
     const batch = this.surgeBatchId;
     for (let i = 0; i < amount; i += 1) {
       setTimeout(() => {
-        if (batch === this.surgeBatchId) this.addMissile(this.spawnWeighted());
+        if (batch === this.surgeBatchId) this.addMissile(this.spawnWeighted(), null, null, { surgeId });
       }, i * 120);
     }
     this.fullClearReady = false;
+    this.fullClearSurgeId = surgeId;
     this.fullClearArmTimer = 6.0;
     this.effects.shockwave(new THREE.Vector3(0, 0, 0), 88, 0xff4d5e);
   }
@@ -848,7 +859,7 @@ class MissileSystem {
         for (let j = 0; j < 4; j += 1) {
           const target = this.city.getTarget();
           target.position.add(new THREE.Vector3(rand(-12, 12), 0, rand(-12, 12)));
-          const child = this.addMissile("warhead", missile.position.clone(), target);
+          const child = this.addMissile("warhead", missile.position.clone(), target, { surgeId: missile.surgeId });
           child.progress = 0.08;
         }
         this.effects.explosion(missile.position, 0xffbd54, 0.7);
@@ -1081,7 +1092,10 @@ class DefenseSystem {
   }
 
   canUseAutoDrones() {
-    return this.autoDroneCooldown <= 0 && this.missileSystem.fullClearReady && this.missileSystem.missiles.length > 0;
+    const surgeTargets = this.missileSystem.missiles.filter(
+      (missile) => missile.surgeId === this.missileSystem.fullClearSurgeId && !missile.dead
+    );
+    return this.autoDroneCooldown <= 0 && this.missileSystem.fullClearReady && surgeTargets.length > 0;
   }
 
   autoDroneSweep() {
@@ -1090,17 +1104,22 @@ class DefenseSystem {
       return;
     }
 
-    const targets = [...this.missileSystem.missiles]
+    const surgeTargets = this.missileSystem.missiles.filter(
+      (missile) => missile.surgeId === this.missileSystem.fullClearSurgeId && !missile.dead
+    );
+    const clearCount = Math.max(1, Math.ceil(surgeTargets.length * 0.8));
+    const targets = surgeTargets
       .sort((a, b) => {
         const aGround = new THREE.Vector3(a.position.x, 0, a.position.z);
         const bGround = new THREE.Vector3(b.position.x, 0, b.position.z);
         return aGround.length() - bGround.length();
       })
-      .slice(0, 6);
+      .slice(0, clearCount);
     const sweepBatch = this.sweepBatchId + 1;
     this.sweepBatchId = sweepBatch;
     this.autoDroneCooldown = 36;
     this.missileSystem.fullClearReady = false;
+    this.missileSystem.fullClearSurgeId = null;
     this.missileSystem.fullClearArmTimer = 0;
     dom.fullClearReadyPanel.hidden = true;
     dom.droneSweepOverlay.hidden = false;
